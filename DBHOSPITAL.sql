@@ -101,6 +101,7 @@ NOMINVALUE
 NOCYCLE
 ORDER;
 
+
 ---------------------------PACKAGE & STORE PROCEDURES-------------------------------
 
 create or replace PACKAGE PKG_HOSPITAL 
@@ -113,12 +114,14 @@ IS
         pi_idSede IN sede.idSede%type,
         pi_idGerente IN gerente.idGerente%type,
         pi_idCondicion IN condicion.idCondicion%type,
-        pi_fechaRegistro IN hospital.fechaRegistro%type,
         po_salida_codigo OUT NUMBER,
         po_salida_mensaje OUT VARCHAR2
     ); 
     PROCEDURE SP_HOSPITAL_ACTUALIZAR  (
         pi_idHospital IN hospital.idHospital%type,
+        pi_nombre IN hospital.nombre%type,
+        pi_area IN hospital.area%type,
+        pi_antiguedad IN hospital.antiguedad%type,
         pi_idDistrito IN distrito.idDistrito%type,
         pi_idSede IN sede.idSede%type,
         pi_idGerente IN gerente.idGerente%type,
@@ -132,6 +135,7 @@ IS
         po_salida_mensaje OUT VARCHAR2  
     );
     PROCEDURE SP_HOSPITAL_LISTAR (
+        pi_nombre IN VARCHAR2 DEFAULT NULL,
         pi_idDistrito IN NUMBER DEFAULT NULL,
         pi_idProvincia IN NUMBER DEFAULT NULL,
         pi_idGerente IN NUMBER DEFAULT NULL,
@@ -146,7 +150,6 @@ END PKG_HOSPITAL;
 
 -----BODY-------
 
-
 create or replace PACKAGE BODY PKG_HOSPITAL
 IS
 ---------REGISTRAR---------------
@@ -158,27 +161,49 @@ IS
         pi_idSede IN sede.idSede%type,
         pi_idGerente IN gerente.idGerente%type,
         pi_idCondicion IN condicion.idCondicion%type,
-        pi_fechaRegistro IN hospital.fechaRegistro%type,
         po_salida_codigo OUT NUMBER,
         po_salida_mensaje OUT VARCHAR2  
     ) 
     IS
-    BEGIN
-        IF pi_fechaRegistro IS NOT NULL THEN
-            INSERT INTO hospital (idHospital, idDistrito, nombre, antiguedad,
-                area, idSede, idGerente, idCondicion, fechaRegistro)
-                VALUES (
-                hospital_sec.NEXTVAL, 
-                pi_idDistrito, 
-                pi_nombre, 
-                pi_antiguedad, 
-                pi_area, 
-                pi_idSede, 
-                pi_idGerente, 
-                pi_idCondicion, 
-                pi_fechaRegistro);
-        ELSE
-            INSERT INTO hospital (idHospital, idDistrito, nombre, antiguedad,
+        v_distrito_exist NUMBER;
+        v_sede_exist NUMBER;
+        v_gerente_exist NUMBER;
+        v_condicion_exist NUMBER;
+    BEGIN        
+        -- Verificar si el distrito existe
+        SELECT COUNT(*) INTO v_distrito_exist 
+        FROM distrito WHERE idDistrito = pi_idDistrito;
+        IF v_distrito_exist = 0 THEN
+            po_salida_codigo := 1;
+            po_salida_mensaje := 'El distrito no existe';
+            RETURN;
+        END IF;
+    
+        -- Verificar si la sede existe
+        SELECT COUNT(*) INTO v_sede_exist FROM sede WHERE idSede = pi_idSede;
+        IF v_sede_exist = 0 THEN
+            po_salida_codigo := 1;
+            po_salida_mensaje := 'La sede no existe';
+            RETURN;
+        END IF;
+    
+        -- Verificar si el gerente existe
+        SELECT COUNT(*) INTO v_gerente_exist FROM gerente WHERE idGerente = pi_idGerente;
+        IF v_gerente_exist = 0 THEN
+            po_salida_codigo := 1;
+            po_salida_mensaje := 'El gerente no existe';
+            RETURN;
+        END IF;
+    
+        -- Verificar si la condicion existe
+        SELECT COUNT(*) INTO v_condicion_exist FROM condicion WHERE idCondicion = pi_idCondicion;
+        IF v_condicion_exist = 0 THEN
+            po_salida_codigo := 1;
+            po_salida_mensaje := 'La condición no existe';
+            RETURN;
+        END IF;
+        
+        INSERT INTO hospital (idHospital, idDistrito, nombre, antiguedad,
                 area, idSede, idGerente, idCondicion)
                 VALUES (
                 hospital_sec.NEXTVAL, 
@@ -189,7 +214,6 @@ IS
                 pi_idSede, 
                 pi_idGerente, 
                 pi_idCondicion);
-        END IF;
         po_salida_codigo := 0;
         po_salida_mensaje := 'Hospital creado exitosamente';
 
@@ -203,6 +227,9 @@ IS
 ---------ACTUALIZAR---------------
     PROCEDURE SP_HOSPITAL_ACTUALIZAR (
         pi_idHospital IN hospital.idHospital%type,
+        pi_nombre IN hospital.nombre%type,
+        pi_area IN hospital.area%type,
+        pi_antiguedad IN hospital.antiguedad%type,
         pi_idDistrito IN distrito.idDistrito%type,
         pi_idSede IN sede.idSede%type,
         pi_idGerente IN gerente.idGerente%type,
@@ -211,9 +238,60 @@ IS
         po_salida_mensaje OUT VARCHAR2  
     ) 
     IS
+        v_hospital_exist NUMBER;
+        v_distrito_exist NUMBER;
+        v_sede_exist NUMBER;
+        v_gerente_exist NUMBER;
+        v_condicion_exist NUMBER;
     BEGIN
+        -- Verificar si el hospital existe
+        SELECT COUNT(*) INTO v_hospital_exist 
+        FROM hospital h WHERE h.idhospital = pi_idHospital;
+        
+        IF v_hospital_exist = 0 THEN
+            po_salida_codigo := 1;
+            po_salida_mensaje := 'El hospital no existe';
+            RETURN;
+        END IF;
+        
+        -- Verificar si el distrito existe
+        SELECT COUNT(*) INTO v_distrito_exist 
+        FROM distrito WHERE idDistrito = pi_idDistrito;
+        IF v_distrito_exist = 0 THEN
+            po_salida_codigo := 1;
+            po_salida_mensaje := 'El distrito no existe';
+            RETURN;
+        END IF;
+    
+        -- Verificar si la sede existe
+        SELECT COUNT(*) INTO v_sede_exist FROM sede WHERE idSede = pi_idSede;
+        IF v_sede_exist = 0 THEN
+            po_salida_codigo := 1;
+            po_salida_mensaje := 'La sede no existe';
+            RETURN;
+        END IF;
+    
+        -- Verificar si el gerente existe
+        SELECT COUNT(*) INTO v_gerente_exist FROM gerente WHERE idGerente = pi_idGerente;
+        IF v_gerente_exist = 0 THEN
+            po_salida_codigo := 1;
+            po_salida_mensaje := 'El gerente no existe';
+            RETURN;
+        END IF;
+    
+        -- Verificar si la condicion existe
+        SELECT COUNT(*) INTO v_condicion_exist FROM condicion WHERE idCondicion = pi_idCondicion;
+        IF v_condicion_exist = 0 THEN
+            po_salida_codigo := 1;
+            po_salida_mensaje := 'La condición no existe';
+            RETURN;
+        END IF;
+    
         UPDATE hospital 
-        SET idDistrito = pi_idDistrito, 
+        SET nombre = pi_nombre,
+            area = pi_area,
+            antiguedad = pi_antiguedad,
+            idDistrito = pi_idDistrito, 
             idSede = pi_idSede, 
             idGerente = pi_idGerente, 
             idCondicion = pi_idCondicion
@@ -223,9 +301,6 @@ IS
         po_salida_mensaje := 'Hospital actualizado exitosamente';
 
     EXCEPTION
-        WHEN NO_DATA_FOUND THEN
-            po_salida_codigo := 1;
-            po_salida_mensaje := 'El hospital no existe';
         WHEN OTHERS THEN
             po_salida_codigo := SQLCODE;
             po_salida_mensaje := SQLERRM;
@@ -239,21 +314,25 @@ IS
         po_salida_mensaje OUT VARCHAR2  
     )
     IS
+        v_hospital_exist NUMBER;
     BEGIN
+        -- Verificar si el hospital existe
+        SELECT COUNT(*) INTO v_hospital_exist 
+        FROM hospital h WHERE h.idhospital = pi_idHospital;
+        
+        IF v_hospital_exist = 0 THEN
+            po_salida_codigo := 1;
+            po_salida_mensaje := 'El hospital no existe';
+            RETURN;
+        END IF;
+        
         DELETE FROM hospital h
         WHERE h.idHospital = pi_idHospital;
 
-        IF SQL%ROWCOUNT = 0 THEN
-            RAISE_APPLICATION_ERROR(-20001, 'No se encontró el hospital con el ID ' || pi_idHospital);
-        ELSE
-            po_salida_codigo := 0;
-            po_salida_mensaje := 'Hospital eliminado exitosamente';
-        END IF;
+        po_salida_codigo := 0;
+        po_salida_mensaje := 'Hospital eliminado exitosamente';
 
     EXCEPTION
-        WHEN NO_DATA_FOUND THEN
-            po_salida_codigo := 1;
-            po_salida_mensaje := 'El hospital no existe';
         WHEN OTHERS THEN
             po_salida_codigo := SQLCODE;
             po_salida_mensaje := SQLERRM;
@@ -262,6 +341,7 @@ IS
     
 ------------------LISTAR------------------------
     PROCEDURE SP_HOSPITAL_LISTAR (
+        pi_nombre IN VARCHAR2 DEFAULT NULL,
         pi_idDistrito IN NUMBER DEFAULT NULL,
         pi_idProvincia IN NUMBER DEFAULT NULL,
         pi_idGerente IN NUMBER DEFAULT NULL,
@@ -275,65 +355,76 @@ IS
         v_query VARCHAR2(1000);
         v_resultados SYS_REFCURSOR;
         v_idHospital NUMBER;
-        v_idDistrito NUMBER;
         v_nombre VARCHAR2(100);
         v_antiguedad VARCHAR2(100);
         v_area DECIMAL(5,2);
-        v_idSede NUMBER;
-        v_idGerente NUMBER;
-        v_idCondicion NUMBER;
-        v_idFechaRegistro TIMESTAMP;
+        v_descDistrito VARCHAR2(100);
+        v_descSede VARCHAR2(100);
+        v_descGerente VARCHAR2(100);
+        v_descCondicion VARCHAR2(100);
+        v_fechaRegistro TIMESTAMP;
     BEGIN
-        v_query := 'SELECT h.idHospital, h.idDistrito, h.nombre, h.antiguedad, 
-        h.area, h.idSede, h.idGerente, h.idCondicion, h.fechaRegistro
-        FROM Hospital h WHERE 1=1';
-    
-        IF pi_idDistrito IS NOT NULL THEN
+        v_query := 'SELECT h.idHospital, h.nombre, h.antiguedad, 
+        h.area, d.descDistrito, s.descSede, g.descGerente, c.descCondicion, h.fechaRegistro
+        FROM Hospital h 
+        INNER JOIN Distrito d ON h.idDistrito = d.idDistrito
+        INNER JOIN Sede s ON h.idSede = s.idSede
+        INNER JOIN Gerente g ON h.idGerente = g.idGerente
+        INNER JOIN Condicion c ON h.idCondicion = c.idCondicion
+        WHERE 1=1';
+        
+        IF pi_nombre IS NOT NULL AND pi_nombre != '-' THEN
+            v_query := v_query || ' AND LOWER(h.nombre) LIKE ''%' || LOWER(pi_nombre)||'%''';
+        END IF;
+        
+        IF pi_idDistrito IS NOT NULL AND pi_idDistrito != 0 THEN
             v_query := v_query || ' AND h.idDistrito = ' || pi_idDistrito;
         END IF;
     
-        IF pi_idProvincia IS NOT NULL THEN
+        IF pi_idProvincia IS NOT NULL  AND pi_idProvincia != 0 THEN
             v_query := v_query || ' AND h.idDistrito IN (SELECT d.idDistrito FROM Distrito d WHERE d.idProvincia = ' || pi_idProvincia || ')';
         END IF;
     
-        IF pi_idGerente IS NOT NULL THEN
+        IF pi_idGerente IS NOT NULL  AND pi_idGerente != 0 THEN
             DBMS_OUTPUT.PUT_LINE('Gerente: ' || pi_idGerente);
             v_query := v_query || ' AND h.idGerente = ' || pi_idGerente;
         END IF;
         
-        IF pi_idSede IS NOT NULL THEN
+        IF pi_idSede IS NOT NULL  AND pi_idSede != 0 THEN
             DBMS_OUTPUT.PUT_LINE('Sede: ' || pi_idSede);
             v_query := v_query || ' AND h.idSede = ' || pi_idSede;
         END IF;
         
-        IF pi_idCondicion IS NOT NULL THEN
+        IF pi_idCondicion IS NOT NULL  AND pi_idCondicion != 0 THEN
             DBMS_OUTPUT.PUT_LINE('Condicion: ' || pi_idCondicion);
             v_query := v_query || ' AND h.idCondicion = ' || pi_idCondicion;
         END IF;
     
         DBMS_OUTPUT.PUT_LINE('Query generada: ' || v_query);
     
-        OPEN v_resultados FOR v_query;
-        po_hospitales_cursor := v_resultados;
-        
-        FETCH v_resultados 
-        INTO v_idHospital,
-            v_idDistrito,
-            v_nombre,
-            v_antiguedad,
-            v_area,
-            v_idSede,
-            v_idGerente,
-            v_idCondicion,
-            v_idFechaRegistro;
-        
-        IF v_resultados%FOUND THEN
+        OPEN v_resultados FOR v_query;            
+        FETCH v_resultados INTO v_idHospital,
+                             v_nombre,
+                             v_antiguedad,
+                             v_area,
+                             v_descDistrito,
+                             v_descSede,
+                             v_descGerente,
+                             v_descCondicion,
+                             v_fechaRegistro;
+                             
+        IF v_resultados%FOUND  THEN
             po_salida_codigo := 0;
             po_salida_mensaje := 'Se encontraron resultados';
         ELSE 
             po_salida_codigo := 1;
             po_salida_mensaje := 'No se encontraron resultados';
         END IF;
+        
+        CLOSE v_resultados;
+        
+        OPEN v_resultados FOR v_query;
+        po_hospitales_cursor := v_resultados;
         
     EXCEPTION
         WHEN OTHERS THEN
@@ -343,6 +434,7 @@ IS
     END SP_HOSPITAL_LISTAR;
 
 END PKG_HOSPITAL;
+
 
 
 
